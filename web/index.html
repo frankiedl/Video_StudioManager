@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Manager</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">🎬 Studio Manager</div>
+    </div>
+    <div class="sidebar-search">
+      <input type="search" id="sidebar-search-input" placeholder="Buscar proyectos, tareas, archivos…" autocomplete="off">
+      <div class="search-results hidden" id="sidebar-search-results"></div>
+    </div>
+    <button class="btn btn-primary btn-block" id="btn-new-project">+ Nuevo proyecto</button>
+    <div class="project-list" id="project-list"></div>
+    <div class="sidebar-footer">
+      <label class="whoami-row">Soy:
+        <select id="whoami-select"><option value="">(elige quién eres)</option></select>
+      </label>
+      <button class="btn btn-ghost btn-block" id="btn-inbox">📥 Bandeja <span id="inbox-badge" class="inbox-badge hidden">0</span></button>
+      <button class="btn btn-ghost btn-block" id="btn-team">👥 Equipo</button>
+      <button class="btn btn-ghost btn-block" id="btn-settings">⚙️ Ajustes</button>
+      <div class="gcal-status" id="gcal-status">Google Calendar: comprobando…</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div id="empty-state" class="empty-state">
+      <h1>Bienvenido a Studio Manager</h1>
+      <p>Crea tu primer proyecto para empezar a organizar vídeo, animación, edición, 3D y rodaje.</p>
+    </div>
+
+    <div id="project-view" class="project-view hidden">
+      <header class="project-header">
+        <div class="project-title-row">
+          <span class="project-color-dot" id="pv-color"></span>
+          <h1 id="pv-name">Proyecto</h1>
+          <span class="badge" id="pv-type">Vídeo</span>
+        </div>
+        <div class="project-actions">
+          <button class="btn btn-secondary" id="btn-project-settings">⚙️ Proyecto</button>
+          <button class="btn btn-primary" id="btn-new-task">+ Nueva tarea</button>
+        </div>
+      </header>
+
+      <nav class="tabs">
+        <button class="tab active" data-tab="board">Tablero</button>
+        <button class="tab" data-tab="timeline">Cronograma</button>
+        <button class="tab" data-tab="calendar">Calendario</button>
+        <button class="tab" data-tab="files">Archivos</button>
+      </nav>
+
+      <section class="tab-panel" id="panel-board"></section>
+      <section class="tab-panel hidden" id="panel-timeline"></section>
+      <section class="tab-panel hidden" id="panel-calendar"></section>
+      <section class="tab-panel hidden" id="panel-files"></section>
+    </div>
+  </main>
+</div>
+
+<div class="modal-backdrop hidden" id="modal-backdrop"></div>
+<div class="modal hidden" id="modal-new-project">
+  <h2>Nuevo proyecto</h2>
+  <label>Nombre</label>
+  <input type="text" id="np-name" placeholder="Ej. Spot Verano 2026">
+  <label>Tipo</label>
+  <select id="np-type">
+    <option>Vídeo</option>
+    <option>Animación</option>
+    <option>Edición</option>
+    <option>3D</option>
+    <option>Rodaje</option>
+    <option>Otro</option>
+  </select>
+  <label>Carpeta del proyecto (dentro de Dropbox)</label>
+  <input type="text" id="np-path" placeholder="C:\Users\...\Dropbox\Proyectos\SpotVerano">
+  <div class="hint" id="np-dropbox-hint"></div>
+  <label>Color</label>
+  <input type="color" id="np-color" value="#3B82F6">
+  <label><input type="checkbox" id="np-structure" checked> Crear estructura de carpetas estándar para este tipo de proyecto</label>
+  <div class="hint" id="np-structure-preview"></div>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" data-close>Cancelar</button>
+    <button class="btn btn-primary" id="np-create">Crear proyecto</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="modal-project-settings">
+  <h2>Ajustes del proyecto</h2>
+  <label>Nombre</label>
+  <input type="text" id="ps-name">
+  <label>Tipo</label>
+  <select id="ps-type">
+    <option>Vídeo</option><option>Animación</option><option>Edición</option>
+    <option>3D</option><option>Rodaje</option><option>Otro</option>
+  </select>
+  <label>Carpeta del proyecto</label>
+  <input type="text" id="ps-path">
+  <label>Color</label>
+  <input type="color" id="ps-color">
+  <label>Columnas del tablero (separadas por coma)</label>
+  <input type="text" id="ps-statuses">
+  <div class="modal-actions">
+    <button class="btn btn-danger" id="ps-delete">Eliminar proyecto</button>
+    <button class="btn btn-ghost" data-close>Cancelar</button>
+    <button class="btn btn-primary" id="ps-save">Guardar</button>
+  </div>
+</div>
+
+<div class="modal modal-lg hidden" id="modal-task">
+  <h2 id="tk-heading">Tarea</h2>
+  <label>Título</label>
+  <input type="text" id="tk-title">
+  <label>Descripción</label>
+  <textarea id="tk-description" rows="3"></textarea>
+  <div class="grid-2">
+    <div>
+      <label>Estado</label>
+      <select id="tk-status"></select>
+    </div>
+    <div>
+      <label>Prioridad</label>
+      <select id="tk-priority">
+        <option>Baja</option><option>Media</option><option>Alta</option><option>Urgente</option>
+      </select>
+    </div>
+    <div>
+      <label>Asignado a</label>
+      <select id="tk-assignee"><option value="">Sin asignar</option></select>
+    </div>
+    <div>
+      <label>Lista</label>
+      <select id="tk-tasklist"></select>
+    </div>
+    <div>
+      <label>Inicio</label>
+      <input type="date" id="tk-start">
+    </div>
+    <div>
+      <label>Entrega (deadline)</label>
+      <input type="date" id="tk-due">
+    </div>
+  </div>
+  <label>Etiquetas (separadas por coma)</label>
+  <input type="text" id="tk-tags">
+  <div class="gcal-note" id="tk-gcal-note"></div>
+
+  <div class="comments-block">
+    <h3>Comentarios</h3>
+    <div class="comments-list" id="tk-comments"></div>
+    <div class="comment-input-row">
+      <select id="tk-comment-author"></select>
+      <input type="text" id="tk-comment-body" placeholder="Escribe un comentario…">
+      <button class="btn btn-secondary" id="tk-comment-send">Enviar</button>
+    </div>
+  </div>
+
+  <div class="modal-actions">
+    <button class="btn btn-danger" id="tk-delete">Eliminar tarea</button>
+    <button class="btn btn-ghost" data-close>Cerrar</button>
+    <button class="btn btn-primary" id="tk-save">Guardar</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="modal-team">
+  <h2>Equipo</h2>
+  <div class="team-list" id="team-list"></div>
+  <h3>Añadir persona</h3>
+  <label>Nombre</label>
+  <input type="text" id="team-name">
+  <label>Email (para invitar en Google Calendar)</label>
+  <input type="text" id="team-email">
+  <label>Color</label>
+  <input type="color" id="team-color" value="#6c5ce7">
+  <div class="modal-actions">
+    <button class="btn btn-ghost" data-close>Cerrar</button>
+    <button class="btn btn-primary" id="team-add">Añadir</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="modal-new-folder">
+  <h2>Nueva carpeta</h2>
+  <label>Nombre</label>
+  <input type="text" id="nf-name" placeholder="Ej. 04_Render">
+  <div class="modal-actions">
+    <button class="btn btn-ghost" data-close>Cancelar</button>
+    <button class="btn btn-primary" id="nf-create">Crear carpeta</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="modal-send-link">
+  <h2>Enviar enlace</h2>
+  <p class="hint" id="sl-target"></p>
+  <label>Para</label>
+  <select id="sl-to"></select>
+  <label>De</label>
+  <select id="sl-from"></select>
+  <label>Mensaje (opcional)</label>
+  <textarea id="sl-message" rows="2" placeholder="Ej. revisa esta versión antes del jueves"></textarea>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" data-close>Cancelar</button>
+    <button class="btn btn-primary" id="sl-send">Enviar</button>
+  </div>
+</div>
+
+<div class="modal modal-lg hidden" id="modal-inbox">
+  <h2>📥 Bandeja de entrada</h2>
+  <div id="inbox-list" class="inbox-list"></div>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" data-close>Cerrar</button>
+  </div>
+</div>
+
+<div class="modal hidden" id="modal-settings">
+  <h2>Ajustes generales</h2>
+  <label>Carpeta de Dropbox detectada</label>
+  <div id="settings-dropbox-detected" class="hint"></div>
+  <h3>Sincronización con Google Calendar</h3>
+  <p class="hint">
+    Las tareas con fecha de entrega crean un evento en el Google Calendar de este equipo,
+    invitando por email a la persona asignada. Necesitas colocar un archivo
+    <code>google_credentials.json</code> (OAuth Desktop App de Google Cloud Console) en la carpeta
+    <code>data/</code> del programa.
+  </p>
+  <div id="settings-gcal-status" class="hint"></div>
+  <div class="modal-actions">
+    <button class="btn btn-ghost" data-close>Cerrar</button>
+    <button class="btn btn-secondary" id="settings-gcal-disconnect">Desconectar</button>
+    <button class="btn btn-primary" id="settings-gcal-connect">Conectar Google Calendar</button>
+  </div>
+</div>
+
+<div class="modal modal-lg hidden" id="modal-asset">
+  <h2 id="asset-heading">Archivo</h2>
+  <img id="asset-preview" class="asset-preview" src="">
+  <div class="grid-2">
+    <div>
+      <label>Estado</label>
+      <select id="asset-status">
+        <option value="">Sin estado</option>
+        <option>Por hacer</option><option>En progreso</option><option>Revisión</option><option>Hecho</option>
+      </select>
+    </div>
+    <div>
+      <label>Asignado a</label>
+      <select id="asset-assignee"><option value="">Sin asignar</option></select>
+    </div>
+  </div>
+  <label>Etiquetas (separadas por coma)</label>
+  <input type="text" id="asset-tags">
+  <label><input type="checkbox" id="asset-starred"> Destacado</label>
+  <label>Notas</label>
+  <textarea id="asset-notes" rows="2"></textarea>
+
+  <div class="comments-block">
+    <h3>Comentarios</h3>
+    <div class="comments-list" id="asset-comments"></div>
+    <div class="comment-input-row">
+      <select id="asset-comment-author"></select>
+      <input type="text" id="asset-comment-body" placeholder="Escribe un comentario…">
+      <button class="btn btn-secondary" id="asset-comment-send">Enviar</button>
+    </div>
+  </div>
+
+  <div class="modal-actions">
+    <button class="btn btn-secondary" id="asset-reveal">Mostrar en carpeta</button>
+    <button class="btn btn-ghost" data-close>Cerrar</button>
+    <button class="btn btn-primary" id="asset-open">Abrir archivo</button>
+  </div>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>
