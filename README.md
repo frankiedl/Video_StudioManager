@@ -1,7 +1,3 @@
-Here is the English translation of the document, maintaining the original structure, formatting, and technical terminology.
-
----
-
 # Studio Manager
 
 Local project manager for video, animation, editing, 3D, and shooting: features a kanban board, timeline, Google Calendar-style calendar, and a file explorer with thumbnails and comments. Everything is backed by your Dropbox folder and synced with Google Calendar.
