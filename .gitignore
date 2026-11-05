@@ -8,3 +8,5 @@ data/thumbnails/
 data/google_credentials.json
 data/google_token*.json
 .env
+build/
+dist/

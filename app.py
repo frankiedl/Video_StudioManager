@@ -1,4 +1,5 @@
 import os
+import sys
 import webbrowser
 from pathlib import Path
 from threading import Timer
@@ -46,7 +47,8 @@ for _r in (users, projects, tasklists, tasks, comments, files, calendar_router,
            settings_router, notifications, search, locks):
     app.include_router(_r.router, dependencies=_protected)
 
-WEB_DIR = Path(__file__).resolve().parent / "web"
+_BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+WEB_DIR = _BASE / "web"
 app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
 
 HOST = os.getenv("VPM_HOST", "127.0.0.1")

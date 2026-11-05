@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 from sqlalchemy import create_engine
@@ -25,6 +26,17 @@ def _dropbox_root() -> Path | None:
     return None
 
 
+def _user_data_dir() -> Path:
+    """Per-user app data folder (used by the packaged executable)."""
+    if sys.platform == "win32":
+        base = Path(os.getenv("APPDATA") or Path.home() / "AppData" / "Roaming")
+    elif sys.platform == "darwin":
+        base = Path.home() / "Library" / "Application Support"
+    else:
+        base = Path(os.getenv("XDG_DATA_HOME") or Path.home() / ".local" / "share")
+    return base / "StudioManager"
+
+
 def resolve_data_dir() -> Path:
     env_data_dir = os.getenv("VPM_DATA_DIR")
     if env_data_dir:
@@ -32,6 +44,9 @@ def resolve_data_dir() -> Path:
         if not data_dir.is_absolute():
             data_dir = (Path.cwd() / data_dir).resolve()
         return data_dir
+
+    if getattr(sys, "frozen", False):
+        return _user_data_dir()
 
     repo_root = _project_root()
     dropbox_root = _dropbox_root()
