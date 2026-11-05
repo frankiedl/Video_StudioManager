@@ -182,6 +182,24 @@ class MemberOut(MemberIn):
     model_config = ConfigDict(from_attributes=True)
 
 
+class VersionIn(BaseModel):
+    project_id: str
+    rel_path: str
+    note: Optional[str] = None
+
+
+class VersionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    project_id: str
+    rel_path: str
+    sha256: str
+    size: int = 0
+    user_id: Optional[str] = None
+    note: Optional[str] = None
+    created_at: datetime.datetime
+
+
 class RenamePayload(BaseModel):
     project_id: str
     rel_path: str

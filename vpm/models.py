@@ -58,6 +58,18 @@ class ProjectMember(Base):
     role = Column(String, default="editor")  # viewer | editor | owner
 
 
+class FileVersion(Base):
+    __tablename__ = "file_versions"
+    id = Column(String, primary_key=True, default=gen_id)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    rel_path = Column(String, nullable=False, index=True)
+    sha256 = Column(String, nullable=False)
+    size = Column(Integer, default=0)
+    user_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    note = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
 class Project(Base):
     __tablename__ = "projects"
     id = Column(String, primary_key=True, default=gen_id)

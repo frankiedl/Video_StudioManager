@@ -10,3 +10,5 @@ data/google_token*.json
 .env
 build/
 dist/
+
+.studio_versions/

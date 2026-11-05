@@ -1019,6 +1019,13 @@ function renderFilePreview(entry) {
     lockRow.appendChild(lbl);
     lockRow.appendChild(btn);
     el.appendChild(lockRow);
+    if (!entry.is_dir) {
+      const vb = document.createElement("button");
+      vb.className = "btn btn-block";
+      vb.textContent = "📜 Versiones";
+      vb.addEventListener("click", () => openVersions(entry));
+      el.appendChild(vb);
+    }
   }
 
   if (entry.meta.tags && entry.meta.tags.length) {
@@ -1321,6 +1328,44 @@ $("#np-create").addEventListener("click", async () => {
     await selectProject(project.id);
     toast($("#np-structure").checked ? "Proyecto creado con su estructura de carpetas" : "Proyecto creado");
   } catch (e) { toast(e.message, true); }
+});
+
+// ---------- VERSIONS ----------
+let verEntry = null;
+async function openVersions(entry) {
+  verEntry = entry;
+  $("#ver-file").textContent = entry.rel_path;
+  $("#ver-note").value = "";
+  openModal("#modal-versions");
+  await renderVersions();
+}
+async function renderVersions() {
+  const box = $("#ver-list");
+  const pid = state.currentProjectId;
+  let list = [];
+  try { list = await api.versions.list(pid, verEntry.rel_path); } catch (e) { box.textContent = e.message; return; }
+  box.innerHTML = list.length ? "" : '<p class="hint">Aún no hay versiones.</p>';
+  list.forEach((v, i) => {
+    const u = userById(v.user_id);
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #2a2d35";
+    row.innerHTML = `<div style="flex:1"><b>v${list.length - i}</b> · ${new Date(v.created_at + "Z").toLocaleString("es-ES")} · ${fmtSize(v.size)}<br><span class="hint">${escapeHtml(u ? u.name : "")}${v.note ? " — " + escapeHtml(v.note) : ""}</span></div>`;
+    const dl = document.createElement("a");
+    dl.className = "btn btn-ghost"; dl.textContent = "⬇"; dl.href = api.versions.downloadUrl(v.id); dl.title = "Descargar";
+    const rs = document.createElement("button");
+    rs.className = "btn"; rs.type = "button"; rs.textContent = "Restaurar";
+    rs.addEventListener("click", async () => {
+      if (!confirm("¿Restaurar esta versión? La actual se guarda antes como versión nueva.")) return;
+      try { await api.versions.restore(v.id); toast("Versión restaurada"); await renderVersions(); await renderFileTable(verEntry.rel_path); }
+      catch (e) { toast(e.message, true); }
+    });
+    row.appendChild(dl); row.appendChild(rs); box.appendChild(row);
+  });
+}
+$("#ver-save").addEventListener("click", async () => {
+  try { await api.versions.create(state.currentProjectId, verEntry.rel_path, $("#ver-note").value || null); $("#ver-note").value = ""; }
+  catch (e) { toast(e.message, true); }
+  renderVersions();
 });
 
 // ---------- PROJECT SETTINGS ----------

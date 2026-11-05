@@ -70,3 +70,7 @@ Variables de entorno: `VPM_AUTH=off` (modo local de un solo usuario sin login), 
 ## Permisos por proyecto
 
 Cada proyecto tiene miembros con rol **Lector** (ve, comenta), **Editor** (además crea/edita tareas y archivos, bloquea) o **Propietario** (además gestiona miembros y ajustes, borra). Quien crea un proyecto es su propietario. Los administradores de la app lo ven todo. Un proyecto sin miembros solo lo ven los administradores: tras actualizar una instalación existente, el admin debe añadir miembros desde ⚙️ Proyecto → Miembros y permisos. Con `VPM_AUTH=off` no hay restricciones.
+
+## Versiones de archivos (snapshots)
+
+En la ficha de un archivo, **📜 Versiones** permite guardar una versión (con nota), descargarla o restaurarla. Restaurar guarda antes el estado actual, así que nunca se pierde trabajo. Las copias se guardan sin duplicados (por hash) en `.studio_versions/` dentro de la carpeta del proyecto, oculta en el explorador. Respeta los bloqueos y el historial sigue al archivo si se renombra. Solo archivos, no carpetas; borrar una versión requiere ser propietario. Ojo: archivos muy grandes ocupan espacio por cada versión distinta.

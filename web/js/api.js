@@ -69,6 +69,13 @@ const api = {
     lock: (projectId, relPath, note) => api.post("/api/locks", { project_id: projectId, rel_path: relPath, note, user_id: localStorage.getItem("vpm_current_user_id") || null }),
     unlock: (projectId, relPath) => api.del(`/api/locks?project_id=${projectId}&rel_path=${encodeURIComponent(relPath)}&user_id=${localStorage.getItem("vpm_current_user_id") || ""}`),
   },
+  versions: {
+    list: (pid, relPath) => api.get(`/api/versions?project_id=${pid}&rel_path=${encodeURIComponent(relPath)}`),
+    create: (pid, relPath, note) => api.post("/api/versions", { project_id: pid, rel_path: relPath, note }),
+    restore: (id) => api.post(`/api/versions/${id}/restore`),
+    remove: (id) => api.del(`/api/versions/${id}`),
+    downloadUrl: (id) => `/api/versions/${id}/download`,
+  },
   calendar: {
     status: () => api.get("/api/calendar/status"),
     connect: () => api.post("/api/calendar/connect"),

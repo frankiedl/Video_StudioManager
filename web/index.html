@@ -91,6 +91,17 @@
   </div>
 </div>
 
+<div class="modal hidden" id="modal-versions">
+  <h2>Versiones</h2>
+  <p class="hint" id="ver-file"></p>
+  <div style="display:flex;gap:6px;margin-bottom:8px">
+    <input type="text" id="ver-note" placeholder="Nota (opcional)" style="flex:1">
+    <button class="btn btn-primary" id="ver-save" type="button">Guardar versión</button>
+  </div>
+  <div id="ver-list" style="max-height:320px;overflow:auto"></div>
+  <div class="modal-actions"><button class="btn btn-ghost" data-close>Cerrar</button></div>
+</div>
+
 <div class="modal hidden" id="modal-project-settings">
   <h2>Ajustes del proyecto</h2>
   <label>Nombre</label>

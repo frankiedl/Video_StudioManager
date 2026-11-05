@@ -169,6 +169,10 @@ def _rewrite_path_prefix(db: Session, project_id: str, old_rel: str, new_rel: st
         if notif.rel_path == old_rel or notif.rel_path.startswith(old_prefix):
             notif.rel_path = remap(notif.rel_path)
 
+    for fv in db.query(models.FileVersion).filter(models.FileVersion.project_id == project_id):
+        if fv.rel_path == old_rel or fv.rel_path.startswith(old_prefix):
+            fv.rel_path = remap(fv.rel_path)
+
     for lk in db.query(models.FileLock).filter(models.FileLock.project_id == project_id):
         if lk.rel_path == old_rel or lk.rel_path.startswith(old_prefix):
             lk.rel_path = remap(lk.rel_path)

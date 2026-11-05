@@ -13,7 +13,7 @@ from vpm import auth
 from vpm.database import Base, engine
 from vpm import models  # noqa: F401  (ensures models are registered before create_all)
 from vpm.routers import (
-    users, projects, tasklists, tasks, comments, files, calendar_router, settings_router, notifications, search, auth_router, locks,
+    users, projects, tasklists, tasks, comments, files, calendar_router, settings_router, notifications, search, auth_router, locks, versions,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -44,7 +44,7 @@ app = FastAPI(title="Studio Manager")
 app.include_router(auth_router.router)
 _protected = [Depends(auth.current_user)]
 for _r in (users, projects, tasklists, tasks, comments, files, calendar_router,
-           settings_router, notifications, search, locks):
+           settings_router, notifications, search, locks, versions):
     app.include_router(_r.router, dependencies=_protected)
 
 _BASE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
