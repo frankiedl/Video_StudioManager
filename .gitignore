@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+data/*.db
+data/*.db-*
+data/thumbnails/
+data/google_credentials.json
+data/google_token*.json
+.env
