@@ -156,6 +156,23 @@ class AssetMetaPatch(BaseModel):
     color: Optional[str] = None
 
 
+class LockIn(BaseModel):
+    project_id: str
+    rel_path: str
+    note: Optional[str] = None
+    user_id: Optional[str] = None  # only used when auth is off
+
+
+class LockOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    project_id: str
+    rel_path: str
+    user_id: str
+    note: Optional[str] = None
+    created_at: datetime.datetime
+    heartbeat_at: datetime.datetime
+
+
 class RenamePayload(BaseModel):
     project_id: str
     rel_path: str

@@ -781,7 +781,8 @@ function buildFileRow(entry) {
   }
   const nameSpan = document.createElement("span");
   nameSpan.className = "name-text";
-  nameSpan.textContent = (entry.meta.starred ? "⭐ " : "") + entry.name;
+  nameSpan.textContent = (entry.lock ? "🔒 " : "") + (entry.meta.starred ? "⭐ " : "") + entry.name;
+  if (entry.lock) nameSpan.title = "Bloqueado por " + ((userById(entry.lock.user_id) || {}).name || "otro usuario");
   nameTd.appendChild(nameSpan);
 
   const renameBtn = document.createElement("span");
@@ -995,6 +996,30 @@ function renderFilePreview(entry) {
   meta.className = "hint";
   meta.textContent = entry.is_dir ? "Carpeta" : `${fmtSize(entry.size)} · ${entry.mtime ? new Date(entry.mtime * 1000).toLocaleString("es-ES") : ""}`;
   el.appendChild(meta);
+
+  {
+    const me = state.currentUserId;
+    const lockRow = document.createElement("div");
+    lockRow.style.cssText = "display:flex;align-items:center;gap:8px;margin:6px 0;";
+    const owner = entry.lock && userById(entry.lock.user_id);
+    const mine = entry.lock && entry.lock.user_id === me;
+    const lbl = document.createElement("span");
+    lbl.className = "hint";
+    lbl.textContent = entry.lock ? (mine ? "🔒 Bloqueado por ti" : `🔒 Bloqueado por ${owner ? owner.name : "otro usuario"}`) : "Libre";
+    const btn = document.createElement("button");
+    btn.className = "btn";
+    btn.textContent = entry.lock ? (mine ? "Desbloquear" : "Forzar desbloqueo") : "Bloquear";
+    btn.addEventListener("click", async () => {
+      try {
+        if (entry.lock) await api.locks.unlock(state.currentProjectId, entry.rel_path);
+        else await api.locks.lock(state.currentProjectId, entry.rel_path);
+        await renderFileTable(entry.rel_path);
+      } catch (e) { toast(e.message, true); }
+    });
+    lockRow.appendChild(lbl);
+    lockRow.appendChild(btn);
+    el.appendChild(lockRow);
+  }
 
   if (entry.meta.tags && entry.meta.tags.length) {
     const tagsRow = document.createElement("div");

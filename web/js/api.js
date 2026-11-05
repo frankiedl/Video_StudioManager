@@ -61,6 +61,10 @@ const api = {
     getMeta: (projectId, relPath) => api.get(`/api/files/meta?project_id=${projectId}&rel_path=${encodeURIComponent(relPath)}`),
     patchMeta: (projectId, relPath, data) => api.patch(`/api/files/meta?project_id=${projectId}&rel_path=${encodeURIComponent(relPath)}`, data),
   },
+  locks: {
+    lock: (projectId, relPath, note) => api.post("/api/locks", { project_id: projectId, rel_path: relPath, note, user_id: localStorage.getItem("vpm_current_user_id") || null }),
+    unlock: (projectId, relPath) => api.del(`/api/locks?project_id=${projectId}&rel_path=${encodeURIComponent(relPath)}&user_id=${localStorage.getItem("vpm_current_user_id") || ""}`),
+  },
   calendar: {
     status: () => api.get("/api/calendar/status"),
     connect: () => api.post("/api/calendar/connect"),

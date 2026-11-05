@@ -8,7 +8,8 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import auth, models, schemas
+from .locks import active_locks, locked_by_other
 from ..database import get_db
 from ..thumbnails import get_or_create_thumbnail
 
@@ -44,6 +45,7 @@ def browse(project_id: str, rel_path: str = "", db: Session = Depends(get_db)):
         for m in db.query(models.AssetMeta).filter(models.AssetMeta.project_id == project_id)
     }
 
+    locks = {l.rel_path: l for l in active_locks(db, project_id)}
     entries = []
     for entry in sorted(target.iterdir(), key=lambda p: (p.is_file(), p.name.lower())):
         if entry.name.startswith("."):
@@ -58,6 +60,8 @@ def browse(project_id: str, rel_path: str = "", db: Session = Depends(get_db)):
             "size": stat.st_size if entry.is_file() else None,
             "mtime": stat.st_mtime,
             "ext": entry.suffix.lower() if entry.is_file() else None,
+            "lock": ({"user_id": locks[entry_rel].user_id, "since": locks[entry_rel].created_at.isoformat(),
+                      "note": locks[entry_rel].note} if entry_rel in locks else None),
             "meta": {
                 "status": meta.status if meta else None,
                 "assignee_id": meta.assignee_id if meta else None,
@@ -164,6 +168,10 @@ def _rewrite_path_prefix(db: Session, project_id: str, old_rel: str, new_rel: st
         if notif.rel_path == old_rel or notif.rel_path.startswith(old_prefix):
             notif.rel_path = remap(notif.rel_path)
 
+    for lk in db.query(models.FileLock).filter(models.FileLock.project_id == project_id):
+        if lk.rel_path == old_rel or lk.rel_path.startswith(old_prefix):
+            lk.rel_path = remap(lk.rel_path)
+
     for tl in db.query(models.TaskList).filter(models.TaskList.project_id == project_id):
         if tl.folder_path == old_rel or (tl.folder_path and tl.folder_path.startswith(old_prefix)):
             tl.folder_path = remap(tl.folder_path)
@@ -172,8 +180,13 @@ def _rewrite_path_prefix(db: Session, project_id: str, old_rel: str, new_rel: st
 
 
 @router.post("/rename")
-def rename(payload: schemas.RenamePayload, db: Session = Depends(get_db)):
+def rename(payload: schemas.RenamePayload, db: Session = Depends(get_db),
+           me: models.User | None = Depends(auth.current_user)):
     project = _get_project(payload.project_id, db)
+    held = locked_by_other(db, payload.project_id, payload.rel_path, me.id if me else None)
+    if held and me is not None:
+        owner = db.get(models.User, held.user_id)
+        raise HTTPException(409, f"Bloqueado por {owner.name if owner else 'otro usuario'}: {held.rel_path}")
     source = _resolve(project, payload.rel_path)
     if not source.exists():
         raise HTTPException(404, "No encontrado")

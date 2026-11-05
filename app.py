@@ -12,7 +12,7 @@ from vpm import auth
 from vpm.database import Base, engine
 from vpm import models  # noqa: F401  (ensures models are registered before create_all)
 from vpm.routers import (
-    users, projects, tasklists, tasks, comments, files, calendar_router, settings_router, notifications, search, auth_router,
+    users, projects, tasklists, tasks, comments, files, calendar_router, settings_router, notifications, search, auth_router, locks,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -43,7 +43,7 @@ app = FastAPI(title="Studio Manager")
 app.include_router(auth_router.router)
 _protected = [Depends(auth.current_user)]
 for _r in (users, projects, tasklists, tasks, comments, files, calendar_router,
-           settings_router, notifications, search):
+           settings_router, notifications, search, locks):
     app.include_router(_r.router, dependencies=_protected)
 
 WEB_DIR = Path(__file__).resolve().parent / "web"

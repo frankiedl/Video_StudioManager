@@ -2,7 +2,7 @@ import datetime
 import uuid
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, ForeignKey, Integer, String, Text, JSON
+    Boolean, Column, DateTime, ForeignKey, Integer, String, Text, JSON, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 
@@ -35,6 +35,18 @@ class AuthSession(Base):
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     expires_at = Column(DateTime, nullable=False)
+
+
+class FileLock(Base):
+    __tablename__ = "file_locks"
+    __table_args__ = (UniqueConstraint("project_id", "rel_path", name="uq_lock_path"),)
+    id = Column(String, primary_key=True, default=gen_id)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    rel_path = Column(String, nullable=False)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    note = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    heartbeat_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
 class Project(Base):
