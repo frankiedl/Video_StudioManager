@@ -117,12 +117,24 @@
   <input type="color" id="ps-color">
   <label>Columnas del tablero (separadas por coma)</label>
   <input type="text" id="ps-statuses">
+  <div id="ps-access-block">
+    <label>Acceso al proyecto</label>
+    <select id="ps-access">
+      <option value="default">Según el modo de la app</option>
+      <option value="personal">Personal — solo yo</option>
+      <option value="team">Equipo — miembros elegidos, todos iguales</option>
+      <option value="studio">Estudio — con roles (lector, editor, propietario)</option>
+    </select>
+    <p class="hint" id="ps-access-hint"></p>
+  </div>
+  <div id="ps-members-block">
   <label>Miembros y permisos</label>
   <div id="ps-members"></div>
   <div style="display:flex;gap:6px;margin:6px 0">
     <select id="ps-member-user" style="flex:1"></select>
     <select id="ps-member-role"><option value="viewer">Lector</option><option value="editor" selected>Editor</option><option value="owner">Propietario</option></select>
     <button class="btn btn-secondary" id="ps-member-add" type="button">Añadir</button>
+  </div>
   </div>
   <div class="modal-actions">
     <button class="btn btn-danger" id="ps-delete">Eliminar proyecto</button>

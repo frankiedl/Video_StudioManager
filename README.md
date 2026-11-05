@@ -78,3 +78,14 @@ Cada proyecto tiene miembros con rol **Lector** (ve, comenta), **Editor** (adem�
 ## Versiones de archivos (snapshots)
 
 En la ficha de un archivo, **📜 Versiones** permite guardar una versión (con nota), descargarla o restaurarla. Restaurar guarda antes el estado actual, así que nunca se pierde trabajo. Las copias se guardan sin duplicados (por hash) en `.studio_versions/` dentro de la carpeta del proyecto, oculta en el explorador. Respeta los bloqueos y el historial sigue al archivo si se renombra. Solo archivos, no carpetas; borrar una versión requiere ser propietario. Ojo: archivos muy grandes ocupan espacio por cada versión distinta.
+
+## Acceso por proyecto (Personal / Equipo / Estudio)
+
+Cada proyecto tiene su propia política en **⚙️ Proyecto → Acceso**, y se puede cambiar en cualquier momento sin borrar nada:
+
+- **Según el modo de la app** (por defecto): en modo Equipo lo ven todas las cuentas; en modo Estudio rige el sistema de roles.
+- **Personal:** solo lo ve quien lo creó. Los miembros ya añadidos quedan inactivos, no se borran.
+- **Equipo:** lo ven y editan los miembros que añadas, todos iguales (cualquiera puede invitar).
+- **Estudio:** roles lector / editor / propietario; el administrador ve todo.
+
+La política decide *quién accede*, no *dónde viven los datos*: todos los proyectos comparten la misma base de datos del servidor. Un proyecto que no deba salir de tu máquina necesita su propia instalación.

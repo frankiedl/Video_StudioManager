@@ -79,9 +79,16 @@ class Project(Base):
     color = Column(String, default="#3B82F6")
     statuses = Column(JSON, default=lambda: list(DEFAULT_STATUSES))
     archived = Column(Boolean, default=False)
+    # None = follow the app mode; "personal" | "team" | "studio" (see vpm/access.py)
+    access = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     task_lists = relationship("TaskList", back_populates="project", cascade="all, delete-orphan")
+
+    @property
+    def effective_access(self) -> str:
+        from . import access  # lazy: access imports models
+        return access.policy_of(self)
 
 
 class TaskList(Base):

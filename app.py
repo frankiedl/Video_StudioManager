@@ -29,6 +29,11 @@ def _migrate():
                 conn.execute(text("ALTER TABLE users ADD COLUMN password_hash VARCHAR"))
             if "role" not in user_cols:
                 conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR DEFAULT 'member'"))
+    if "projects" in inspector.get_table_names():
+        proj_cols = {c["name"] for c in inspector.get_columns("projects")}
+        if "access" not in proj_cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE projects ADD COLUMN access VARCHAR"))
     if "asset_meta" not in inspector.get_table_names():
         return
     existing_cols = {c["name"] for c in inspector.get_columns("asset_meta")}

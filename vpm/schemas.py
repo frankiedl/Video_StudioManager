@@ -49,6 +49,7 @@ class ProjectIn(BaseModel):
     root_path: str
     color: Optional[str] = "#3B82F6"
     create_structure: bool = True
+    access: Optional[str] = None  # personal | team | studio (None = follow app mode)
 
 
 class ProjectPatch(BaseModel):
@@ -58,6 +59,7 @@ class ProjectPatch(BaseModel):
     color: Optional[str] = None
     statuses: Optional[list[str]] = None
     archived: Optional[bool] = None
+    access: Optional[str] = None  # personal | team | studio | default
 
 
 class ProjectOut(BaseModel):
@@ -69,6 +71,8 @@ class ProjectOut(BaseModel):
     color: str
     statuses: list[str]
     archived: bool
+    access: Optional[str] = None
+    effective_access: Optional[str] = None  # what actually applies (resolves the app-mode default)
     created_at: datetime.datetime
 
 

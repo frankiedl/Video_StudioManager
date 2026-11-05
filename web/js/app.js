@@ -1376,8 +1376,52 @@ $("#btn-project-settings").addEventListener("click", () => {
   $("#ps-path").value = p.root_path;
   $("#ps-color").value = p.color;
   $("#ps-statuses").value = p.statuses.join(", ");
-  renderMembers();
+  initAccessUI(p);
   openModal("#modal-project-settings");
+});
+
+let showRoles = true;
+let appMode = null;
+const ACCESS_HINTS = {
+  open: "Lo ven y editan todas las cuentas de la app.",
+  personal: "Solo tú ves este proyecto. Los miembros ya añadidos quedan inactivos (no se borran) por si lo compartes de nuevo.",
+  team: "Lo ven y editan los miembros que añadas, todos con los mismos permisos.",
+  studio: "Roles por proyecto (lector, editor, propietario). El administrador de la app ve todo.",
+};
+async function initAccessUI(p) {
+  let st = { auth_enabled: false };
+  try { st = await api.get("/api/auth/status"); } catch (e) {}
+  appMode = st.mode;
+  $("#ps-access-block").style.display = st.auth_enabled ? "" : "none";
+  $("#ps-members-block").style.display = "none";
+  if (!st.auth_enabled) return;   // local mode: no accounts, nothing to configure
+  $("#ps-access").value = p.access || "default";
+  await applyAccessUI();
+}
+function currentPolicy() {
+  const v = $("#ps-access").value;
+  return v === "default" ? (appMode === "team" ? "open" : "studio") : v;
+}
+async function applyAccessUI() {
+  const pol = currentPolicy();
+  $("#ps-access-hint").textContent = ACCESS_HINTS[pol];
+  showRoles = pol === "studio";
+  $("#ps-members-block").style.display = (pol === "team" || pol === "studio") ? "" : "none";
+  $("#ps-member-role").style.display = showRoles ? "" : "none";
+  if (pol === "team" || pol === "studio") await renderMembers();
+}
+$("#ps-access").addEventListener("change", async () => {
+  const pid = state.currentProjectId;
+  try {
+    await api.projects.patch(pid, { access: $("#ps-access").value });   // applied at once; reversible
+    await loadProjects();
+    toast("Acceso actualizado");
+  } catch (e) {
+    toast(e.message, true);
+    const p = projectById(pid);
+    $("#ps-access").value = (p && p.access) || "default";
+  }
+  await applyAccessUI();
 });
 
 const ROLE_LABELS = { viewer: "Lector", editor: "Editor", owner: "Propietario" };
@@ -1386,6 +1430,7 @@ async function renderMembers() {
   const box = $("#ps-members");
   let members = [];
   try { members = await api.projects.members(pid); } catch (e) { box.textContent = e.message; return; }
+  if (!showRoles) members = members.filter(m => m.role !== "owner" || true);
   box.innerHTML = "";
   members.forEach(m => {
     const u = userById(m.user_id);
@@ -1404,6 +1449,7 @@ async function renderMembers() {
       try { await api.projects.removeMember(pid, m.user_id); } catch (e) { toast(e.message, true); }
       renderMembers();
     });
+    if (!showRoles) sel.style.display = "none";
     row.appendChild(sel); row.appendChild(del); box.appendChild(row);
   });
   const inProject = new Set(members.map(m => m.user_id));

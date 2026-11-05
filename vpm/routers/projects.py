@@ -23,6 +23,8 @@ def list_projects(db: Session = Depends(get_db), me: models.User | None = Depend
 def create_project(payload: schemas.ProjectIn, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
     data = payload.model_dump()
     create_structure = data.pop("create_structure")
+    if data.get("access") not in (None, *access.POLICIES):
+        raise HTTPException(400, "Acceso no válido")
     project = models.Project(**data)
     db.add(project)
     db.commit()
@@ -64,7 +66,15 @@ def patch_project(project_id: str, payload: schemas.ProjectPatch, db: Session = 
     project = db.get(models.Project, project_id)
     if not project:
         raise HTTPException(404, "Proyecto no encontrado")
-    for k, v in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+    if "access" in data:
+        if data["access"] == "default":
+            data["access"] = None
+        if data["access"] not in (None, *access.POLICIES):
+            raise HTTPException(400, "Acceso no válido")
+        if me is not None and data["access"] != project.access:
+            _ensure_owner(db, project_id, me)
+    for k, v in data.items():
         setattr(project, k, v)
     db.commit()
     db.refresh(project)
@@ -91,6 +101,11 @@ def list_members(project_id: str, db: Session = Depends(get_db), me: models.User
 @router.put("/{project_id}/members", response_model=schemas.MemberOut)
 def set_member(project_id: str, payload: schemas.MemberIn, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
     access.require(db, me, project_id, "owner")
+    policy = access.policy_of(db.get(models.Project, project_id))
+    if policy == "personal":
+        raise HTTPException(400, "Proyecto personal: cambia el acceso a Equipo o Estudio para compartirlo")
+    if policy == "team":
+        payload.role = "editor"  # team members are equals; roles only matter in studio projects
     if payload.role not in access.ROLES:
         raise HTTPException(400, "Rol no válido")
     if not db.get(models.User, payload.user_id):
@@ -121,3 +136,13 @@ def remove_member(project_id: str, user_id: str, db: Session = Depends(get_db), 
 
 def _owner_count(db: Session, project_id: str) -> int:
     return db.query(models.ProjectMember).filter_by(project_id=project_id, role="owner").count()
+
+
+def _ensure_owner(db: Session, project_id: str, me: models.User):
+    """When the policy changes, make sure the project keeps (at least) one owner."""
+    if _owner_count(db, project_id) == 0:
+        m = db.query(models.ProjectMember).filter_by(project_id=project_id, user_id=me.id).first()
+        if m:
+            m.role = "owner"
+        else:
+            db.add(models.ProjectMember(project_id=project_id, user_id=me.id, role="owner"))
