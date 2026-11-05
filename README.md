@@ -56,3 +56,9 @@ This app does not have a real login system, so "sending something to someone's i
 
 * Video thumbnails require `ffmpeg` installed and added to the PATH; if unavailable, a generic icon based on the file type will be displayed.
 * Deleting a project in the app only removes its organization (tasks, comments, tags); it never deletes files from your Dropbox.
+
+## Multiusuario y login
+
+La primera vez que abres la app te pide crear la cuenta de **administrador**. Después el admin crea usuarios (con contraseña) en **Equipo**; cada uno inicia sesión con su email. Las contraseñas se guardan con scrypt y las sesiones son cookies HttpOnly.
+
+Variables de entorno: `VPM_AUTH=off` (modo local de un solo usuario sin login), `VPM_DATABASE_URL` (p. ej. `postgresql+psycopg://user:pw@host/db` para un servidor compartido; instala `psycopg[binary]`), `VPM_COOKIE_SECURE=1` (si sirves por HTTPS), `VPM_HOST=0.0.0.0` (para exponerlo en red; ponlo detrás de HTTPS).

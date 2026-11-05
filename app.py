@@ -4,14 +4,15 @@ from pathlib import Path
 from threading import Timer
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
 
+from vpm import auth
 from vpm.database import Base, engine
 from vpm import models  # noqa: F401  (ensures models are registered before create_all)
 from vpm.routers import (
-    users, projects, tasklists, tasks, comments, files, calendar_router, settings_router, notifications, search,
+    users, projects, tasklists, tasks, comments, files, calendar_router, settings_router, notifications, search, auth_router,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -20,6 +21,13 @@ Base.metadata.create_all(bind=engine)
 def _migrate():
     """Adds columns introduced after the initial release to existing SQLite databases."""
     inspector = inspect(engine)
+    if "users" in inspector.get_table_names():
+        user_cols = {c["name"] for c in inspector.get_columns("users")}
+        with engine.begin() as conn:
+            if "password_hash" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN password_hash VARCHAR"))
+            if "role" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR DEFAULT 'member'"))
     if "asset_meta" not in inspector.get_table_names():
         return
     existing_cols = {c["name"] for c in inspector.get_columns("asset_meta")}
@@ -32,16 +40,11 @@ _migrate()
 
 app = FastAPI(title="Studio Manager")
 
-app.include_router(users.router)
-app.include_router(projects.router)
-app.include_router(tasklists.router)
-app.include_router(tasks.router)
-app.include_router(comments.router)
-app.include_router(files.router)
-app.include_router(calendar_router.router)
-app.include_router(settings_router.router)
-app.include_router(notifications.router)
-app.include_router(search.router)
+app.include_router(auth_router.router)
+_protected = [Depends(auth.current_user)]
+for _r in (users, projects, tasklists, tasks, comments, files, calendar_router,
+           settings_router, notifications, search):
+    app.include_router(_r.router, dependencies=_protected)
 
 WEB_DIR = Path(__file__).resolve().parent / "web"
 app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")

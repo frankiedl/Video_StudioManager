@@ -24,7 +24,17 @@ class User(Base):
     name = Column(String, nullable=False)
     email = Column(String, nullable=False, unique=True)
     color = Column(String, default="#6c5ce7")
+    password_hash = Column(String, nullable=True)
+    role = Column(String, default="member")  # "admin" | "member"
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class AuthSession(Base):
+    __tablename__ = "auth_sessions"
+    token_hash = Column(String, primary_key=True)  # sha256 of the cookie token
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
 
 
 class Project(Base):

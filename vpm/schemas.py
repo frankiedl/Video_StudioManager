@@ -10,9 +10,32 @@ class UserIn(BaseModel):
     color: Optional[str] = "#6c5ce7"
 
 
+class UserCreate(UserIn):
+    password: Optional[str] = None
+    role: Optional[str] = "member"
+
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    color: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[str] = None
+
+
 class UserOut(UserIn):
     model_config = ConfigDict(from_attributes=True)
     id: str
+    role: Optional[str] = "member"
+
+
+class LoginIn(BaseModel):
+    email: str
+    password: str
+
+
+class SetupIn(UserIn):
+    password: str
 
 
 class ProjectIn(BaseModel):
