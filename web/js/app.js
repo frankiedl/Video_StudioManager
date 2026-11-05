@@ -1007,7 +1007,7 @@ function renderFilePreview(entry) {
     lbl.className = "hint";
     lbl.textContent = entry.lock ? (mine ? "🔒 Bloqueado por ti" : `🔒 Bloqueado por ${owner ? owner.name : "otro usuario"}`) : "Libre";
     const btn = document.createElement("button");
-    btn.className = "btn";
+    btn.className = "btn btn-secondary";
     btn.textContent = entry.lock ? (mine ? "Desbloquear" : "Forzar desbloqueo") : "Bloquear";
     btn.addEventListener("click", async () => {
       try {
@@ -1021,7 +1021,7 @@ function renderFilePreview(entry) {
     el.appendChild(lockRow);
     if (!entry.is_dir) {
       const vb = document.createElement("button");
-      vb.className = "btn btn-block";
+      vb.className = "btn btn-secondary btn-block";
       vb.textContent = "📜 Versiones";
       vb.addEventListener("click", () => openVersions(entry));
       el.appendChild(vb);
@@ -1353,7 +1353,7 @@ async function renderVersions() {
     const dl = document.createElement("a");
     dl.className = "btn btn-ghost"; dl.textContent = "⬇"; dl.href = api.versions.downloadUrl(v.id); dl.title = "Descargar";
     const rs = document.createElement("button");
-    rs.className = "btn"; rs.type = "button"; rs.textContent = "Restaurar";
+    rs.className = "btn btn-secondary"; rs.type = "button"; rs.textContent = "Restaurar";
     rs.addEventListener("click", async () => {
       if (!confirm("¿Restaurar esta versión? La actual se guarda antes como versión nueva.")) return;
       try { await api.versions.restore(v.id); toast("Versión restaurada"); await renderVersions(); await renderFileTable(verEntry.rel_path); }

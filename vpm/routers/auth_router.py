@@ -13,14 +13,30 @@ def _needs_setup(db: Session) -> bool:
 
 @router.get("/status")
 def status(db: Session = Depends(get_db)):
-    return {"auth_enabled": auth.auth_enabled(), "needs_setup": auth.auth_enabled() and _needs_setup(db)}
+    enabled = auth.auth_enabled()
+    return {"mode": auth.get_mode(), "auth_enabled": enabled, "needs_setup": enabled and _needs_setup(db)}
+
+
+@router.post("/mode")
+def choose_local(payload: schemas.ModeIn, db: Session = Depends(get_db)):
+    """First-run: pick local mode (no accounts). Team/Studio are chosen through /setup."""
+    if payload.mode != "local":
+        raise HTTPException(400, "Usa /setup para los modos equipo y estudio")
+    if auth.get_mode() is not None or not _needs_setup(db):
+        raise HTTPException(403, "El modo ya está configurado")
+    auth.save_mode(db, "local")
+    return {"mode": "local"}
 
 
 @router.post("/setup", response_model=schemas.UserOut)
 def setup(payload: schemas.SetupIn, response: Response, db: Session = Depends(get_db)):
-    """Creates the first admin. Only works while no user has a password yet."""
+    """Creates the first account and fixes the mode (studio: it is the admin). Only while no user has a password."""
     if not _needs_setup(db):
         raise HTTPException(403, "La instalación ya está configurada")
+    if payload.mode not in {"team", "studio"}:
+        raise HTTPException(400, "Modo no válido")
+    if auth.mode_locked_by_env() and auth.get_mode() != payload.mode:
+        raise HTTPException(403, "El modo está fijado por la configuración del servidor")
     auth.check_password_strength(payload.password)
     user = db.query(models.User).filter(models.User.email == payload.email).first()
     if user:
@@ -29,7 +45,8 @@ def setup(payload: schemas.SetupIn, response: Response, db: Session = Depends(ge
         user = models.User(name=payload.name, email=payload.email, color=payload.color)
         db.add(user)
     user.password_hash = auth.hash_password(payload.password)
-    user.role = "admin"
+    user.role = "admin" if payload.mode == "studio" else "member"
+    auth.save_mode(db, payload.mode)
     db.commit()
     db.refresh(user)
     auth.start_session(db, response, user)

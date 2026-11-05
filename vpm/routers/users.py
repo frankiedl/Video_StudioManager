@@ -35,7 +35,7 @@ def update_user(user_id: str, payload: schemas.UserUpdate, db: Session = Depends
     user = db.get(models.User, user_id)
     if not user:
         raise HTTPException(404, "Usuario no encontrado")
-    is_admin = me is None or me.role == "admin"
+    is_admin = auth.is_privileged(me)
     if not is_admin and (me.id != user_id or payload.role is not None or payload.password is not None):
         raise HTTPException(403, "No permitido")
     data = payload.model_dump(exclude_unset=True)

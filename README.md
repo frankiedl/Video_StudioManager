@@ -57,19 +57,23 @@ This app does not have a real login system, so "sending something to someone's i
 * Video thumbnails require `ffmpeg` installed and added to the PATH; if unavailable, a generic icon based on the file type will be displayed.
 * Deleting a project in the app only removes its organization (tasks, comments, tags); it never deletes files from your Dropbox.
 
-## Multiusuario y login
+## Modos de uso (Local, Equipo, Estudio)
 
-La primera vez que abres la app te pide crear la cuenta de **administrador**. Después el admin crea usuarios (con contraseña) en **Equipo**; cada uno inicia sesión con su email. Las contraseñas se guardan con scrypt y las sesiones son cookies HttpOnly.
+La primera vez que abres la app eliges cómo la vas a usar:
 
-Variables de entorno: `VPM_AUTH=off` (modo local de un solo usuario sin login), `VPM_DATABASE_URL` (p. ej. `postgresql+psycopg://user:pw@host/db` para un servidor compartido; instala `psycopg[binary]`), `VPM_COOKIE_SECURE=1` (si sirves por HTTPS), `VPM_HOST=0.0.0.0` (para exponerlo en red; ponlo detrás de HTTPS).
+| Modo | Para quién | Login | Permisos |
+|---|---|---|---|
+| **Local** | Una sola persona | No | Sin restricciones (selector "Soy:" como siempre) |
+| **Equipo** | Unas pocas personas de confianza | Sí | Todos iguales, sin administrador: cualquiera añade gente y ve todos los proyectos |
+| **Estudio** | Estudio con jerarquía | Sí | Administrador + roles por proyecto (lector, editor, propietario) |
 
-## Ejecutable (sin instalar Python)
+En Equipo y Estudio la primera cuenta que creas fija el modo (en Estudio es la del administrador); después se añaden usuarios en **👥 Equipo**. Las contraseñas se guardan con scrypt y las sesiones son cookies HttpOnly. El modo se puede fijar desde el servidor con `VPM_MODE=local|team|studio` (`VPM_AUTH=off` equivale a `local`). Instalaciones anteriores con usuarios y contraseña se tratan como Estudio.
 
-`pyinstaller studiomanager.spec` genera `dist/StudioManager` (.exe en Windows). Los datos se guardan en `%APPDATA%\StudioManager` (Windows), `~/Library/Application Support/StudioManager` (macOS) o `~/.local/share/StudioManager` (Linux), o en `VPM_DATA_DIR`. Para miniaturas de vídeo sigue haciendo falta `ffmpeg` en el PATH. GitHub Actions (`.github/workflows/build.yml`) compila para Windows, macOS y Linux; al crear una etiqueta `vX.Y.Z` publica los binarios en Releases.
+Otras variables: `VPM_DATABASE_URL` (p. ej. `postgresql+psycopg://user:pw@host/db` para un servidor compartido; instala `psycopg[binary]`), `VPM_COOKIE_SECURE=1` (si sirves por HTTPS), `VPM_HOST=0.0.0.0` (para exponerlo en red; ponlo detrás de HTTPS).
 
 ## Permisos por proyecto
 
-Cada proyecto tiene miembros con rol **Lector** (ve, comenta), **Editor** (además crea/edita tareas y archivos, bloquea) o **Propietario** (además gestiona miembros y ajustes, borra). Quien crea un proyecto es su propietario. Los administradores de la app lo ven todo. Un proyecto sin miembros solo lo ven los administradores: tras actualizar una instalación existente, el admin debe añadir miembros desde ⚙️ Proyecto → Miembros y permisos. Con `VPM_AUTH=off` no hay restricciones.
+Cada proyecto tiene miembros con rol **Lector** (ve, comenta), **Editor** (además crea/edita tareas y archivos, bloquea) o **Propietario** (además gestiona miembros y ajustes, borra). Quien crea un proyecto es su propietario. Los administradores de la app lo ven todo. (Solo en modo Estudio; en Equipo todos comparten todo.) Un proyecto sin miembros solo lo ven los administradores: tras actualizar una instalación existente, el admin debe añadir miembros desde ⚙️ Proyecto → Miembros y permisos. Con `VPM_AUTH=off` no hay restricciones.
 
 ## Versiones de archivos (snapshots)
 

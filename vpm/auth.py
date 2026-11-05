@@ -19,8 +19,72 @@ SESSION_DAYS = 30
 MIN_PASSWORD = 8
 
 
+MODES = {"local", "team", "studio"}
+# local : one person, no login (like before).
+# team  : a few people, login required, everyone has the same rights (no admin).
+# studio: login + an admin + per-project roles.
+
+
+def _read_setting(key: str):
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:
+        row = db.get(models.AppSetting, key)
+        return row.value if row else None
+    except Exception:
+        return None
+    finally:
+        db.close()
+
+
+def save_mode(db: Session, mode: str):
+    row = db.get(models.AppSetting, "mode")
+    if row:
+        row.value = mode
+    else:
+        db.add(models.AppSetting(key="mode", value=mode))
+    db.commit()
+
+
+def mode_locked_by_env() -> bool:
+    return os.getenv("VPM_MODE", "").lower() in MODES or \
+        os.getenv("VPM_AUTH", "on").lower() in {"0", "false", "no", "off"}
+
+
+def get_mode() -> str | None:
+    """Active mode, or None while the first-run choice is still pending."""
+    env = os.getenv("VPM_MODE", "").lower()
+    if env in MODES:
+        return env
+    if os.getenv("VPM_AUTH", "on").lower() in {"0", "false", "no", "off"}:
+        return "local"
+    stored = _read_setting("mode")
+    if stored in MODES:
+        return stored
+    from .database import SessionLocal
+    db = SessionLocal()
+    try:  # installs from before modes existed: users with passwords => studio
+        if db.query(models.User).filter(models.User.password_hash.isnot(None)).count():
+            return "studio"
+    except Exception:
+        pass
+    finally:
+        db.close()
+    return None
+
+
 def auth_enabled() -> bool:
-    return os.getenv("VPM_AUTH", "on").lower() not in {"0", "false", "no", "off"}
+    return get_mode() != "local"
+
+
+def is_privileged(user) -> bool:
+    """Full rights: everyone in local/team mode, only admins in studio mode."""
+    mode = get_mode()
+    if mode == "local":
+        return True
+    if user is None:
+        return False
+    return mode == "team" or user.role == "admin"
 
 
 def hash_password(password: str) -> str:
@@ -87,7 +151,7 @@ def current_user(request: Request, db: Session = Depends(get_db)) -> models.User
 
 
 def require_admin(user: models.User | None = Depends(current_user)) -> models.User | None:
-    if auth_enabled() and (not user or user.role != "admin"):
+    if auth_enabled() and not is_privileged(user):
         raise HTTPException(403, "Solo administradores")
     return user
 

@@ -11,7 +11,7 @@ ROLES = list(RANK)
 
 
 def _bypass(me) -> bool:
-    return not auth.auth_enabled() or (me is not None and me.role == "admin")
+    return not auth.auth_enabled() or auth.is_privileged(me)
 
 
 def rank_in(db: Session, me, project_id: str) -> int:

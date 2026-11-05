@@ -36,6 +36,11 @@ class LoginIn(BaseModel):
 
 class SetupIn(UserIn):
     password: str
+    mode: Optional[str] = "studio"  # "team" | "studio"
+
+
+class ModeIn(BaseModel):
+    mode: str
 
 
 class ProjectIn(BaseModel):

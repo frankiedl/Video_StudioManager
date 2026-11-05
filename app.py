@@ -41,6 +41,16 @@ _migrate()
 
 app = FastAPI(title="Studio Manager")
 
+
+@app.middleware("http")
+async def no_cache_static(request, call_next):
+    """Always revalidate the UI files so an upgrade never leaves a stale JS in the browser."""
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 app.include_router(auth_router.router)
 _protected = [Depends(auth.current_user)]
 for _r in (users, projects, tasklists, tasks, comments, files, calendar_router,

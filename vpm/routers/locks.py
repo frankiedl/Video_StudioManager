@@ -73,7 +73,7 @@ def release(project_id: str, rel_path: str, user_id: str | None = None, db: Sess
     lock = db.query(models.FileLock).filter_by(project_id=project_id, rel_path=rel_path).first()
     if not lock:
         return {"ok": True}
-    is_admin = me is None or me.role == "admin"
+    is_admin = auth.is_privileged(me)
     if lock.user_id != uid and not is_admin:
         raise HTTPException(403, "Solo el propietario o un administrador puede desbloquear")
     db.delete(lock)
