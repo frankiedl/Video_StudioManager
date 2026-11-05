@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import models, schemas
+from .. import access, auth, models, schemas
 from ..database import get_db
 
 router = APIRouter(prefix="/api/task-lists", tags=["task-lists"])
 
 
 @router.get("", response_model=list[schemas.TaskListOut])
-def list_task_lists(project_id: str, db: Session = Depends(get_db)):
+def list_task_lists(project_id: str, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    access.require(db, me, project_id, "viewer")
     return (
         db.query(models.TaskList)
         .filter(models.TaskList.project_id == project_id)
@@ -18,7 +19,8 @@ def list_task_lists(project_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=schemas.TaskListOut)
-def create_task_list(payload: schemas.TaskListIn, db: Session = Depends(get_db)):
+def create_task_list(payload: schemas.TaskListIn, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    access.require(db, me, payload.project_id, "editor")
     count = db.query(models.TaskList).filter(models.TaskList.project_id == payload.project_id).count()
     task_list = models.TaskList(**payload.model_dump(), position=count)
     db.add(task_list)
@@ -28,7 +30,8 @@ def create_task_list(payload: schemas.TaskListIn, db: Session = Depends(get_db))
 
 
 @router.delete("/{task_list_id}")
-def delete_task_list(task_list_id: str, db: Session = Depends(get_db)):
+def delete_task_list(task_list_id: str, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    access.require(db, me, access.project_of_task_list(db, task_list_id), "editor")
     task_list = db.get(models.TaskList, task_list_id)
     if not task_list:
         raise HTTPException(404, "Lista no encontrada")

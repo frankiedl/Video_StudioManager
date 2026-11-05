@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import models, schemas, google_calendar
+from .. import access, auth, models, schemas, google_calendar
 from ..database import get_db
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
@@ -27,8 +27,16 @@ def _sync_calendar(task: models.Task, db: Session):
 
 
 @router.get("", response_model=list[schemas.TaskOut])
-def list_tasks(project_id: str | None = None, task_list_id: str | None = None, db: Session = Depends(get_db)):
+def list_tasks(project_id: str | None = None, task_list_id: str | None = None, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
     q = db.query(models.Task)
+    if task_list_id:
+        access.require(db, me, access.project_of_task_list(db, task_list_id), "viewer")
+    elif project_id:
+        access.require(db, me, project_id, "viewer")
+    else:
+        ids = access.visible_project_ids(db, me)
+        if ids is not None:
+            q = q.join(models.TaskList).filter(models.TaskList.project_id.in_(ids))
     if task_list_id:
         q = q.filter(models.Task.task_list_id == task_list_id)
     elif project_id:
@@ -37,7 +45,8 @@ def list_tasks(project_id: str | None = None, task_list_id: str | None = None, d
 
 
 @router.post("", response_model=schemas.TaskOut)
-def create_task(payload: schemas.TaskIn, db: Session = Depends(get_db)):
+def create_task(payload: schemas.TaskIn, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    access.require(db, me, access.project_of_task_list(db, payload.task_list_id), "editor")
     count = db.query(models.Task).filter(models.Task.task_list_id == payload.task_list_id).count()
     task = models.Task(**payload.model_dump(), position=count)
     db.add(task)
@@ -48,7 +57,8 @@ def create_task(payload: schemas.TaskIn, db: Session = Depends(get_db)):
 
 
 @router.get("/{task_id}", response_model=schemas.TaskOut)
-def get_task(task_id: str, db: Session = Depends(get_db)):
+def get_task(task_id: str, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    access.require(db, me, access.project_of_task(db, task_id), "viewer")
     task = db.get(models.Task, task_id)
     if not task:
         raise HTTPException(404, "Tarea no encontrada")
@@ -56,7 +66,8 @@ def get_task(task_id: str, db: Session = Depends(get_db)):
 
 
 @router.patch("/{task_id}", response_model=schemas.TaskOut)
-def patch_task(task_id: str, payload: schemas.TaskPatch, db: Session = Depends(get_db)):
+def patch_task(task_id: str, payload: schemas.TaskPatch, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    access.require(db, me, access.project_of_task(db, task_id), "editor")
     task = db.get(models.Task, task_id)
     if not task:
         raise HTTPException(404, "Tarea no encontrada")
@@ -76,7 +87,8 @@ def patch_task(task_id: str, payload: schemas.TaskPatch, db: Session = Depends(g
 
 
 @router.delete("/{task_id}")
-def delete_task(task_id: str, db: Session = Depends(get_db)):
+def delete_task(task_id: str, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    access.require(db, me, access.project_of_task(db, task_id), "editor")
     task = db.get(models.Task, task_id)
     if not task:
         raise HTTPException(404, "Tarea no encontrada")

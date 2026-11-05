@@ -66,3 +66,7 @@ Variables de entorno: `VPM_AUTH=off` (modo local de un solo usuario sin login), 
 ## Ejecutable (sin instalar Python)
 
 `pyinstaller studiomanager.spec` genera `dist/StudioManager` (.exe en Windows). Los datos se guardan en `%APPDATA%\StudioManager` (Windows), `~/Library/Application Support/StudioManager` (macOS) o `~/.local/share/StudioManager` (Linux), o en `VPM_DATA_DIR`. Para miniaturas de vídeo sigue haciendo falta `ffmpeg` en el PATH. GitHub Actions (`.github/workflows/build.yml`) compila para Windows, macOS y Linux; al crear una etiqueta `vX.Y.Z` publica los binarios en Releases.
+
+## Permisos por proyecto
+
+Cada proyecto tiene miembros con rol **Lector** (ve, comenta), **Editor** (además crea/edita tareas y archivos, bloquea) o **Propietario** (además gestiona miembros y ajustes, borra). Quien crea un proyecto es su propietario. Los administradores de la app lo ven todo. Un proyecto sin miembros solo lo ven los administradores: tras actualizar una instalación existente, el admin debe añadir miembros desde ⚙️ Proyecto → Miembros y permisos. Con `VPM_AUTH=off` no hay restricciones.

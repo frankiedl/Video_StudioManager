@@ -173,6 +173,15 @@ class LockOut(BaseModel):
     heartbeat_at: datetime.datetime
 
 
+class MemberIn(BaseModel):
+    user_id: str
+    role: str = "editor"
+
+
+class MemberOut(MemberIn):
+    model_config = ConfigDict(from_attributes=True)
+
+
 class RenamePayload(BaseModel):
     project_id: str
     rel_path: str

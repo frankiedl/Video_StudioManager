@@ -17,6 +17,7 @@ const api = {
   },
   get(url) { return this._req("GET", url); },
   post(url, body) { return this._req("POST", url, body); },
+  put(url, body) { return this._req("PUT", url, body); },
   patch(url, body) { return this._req("PATCH", url, body); },
   del(url) { return this._req("DELETE", url); },
 
@@ -32,6 +33,9 @@ const api = {
     get: (id) => api.get(`/api/projects/${id}`),
     patch: (id, data) => api.patch(`/api/projects/${id}`, data),
     remove: (id) => api.del(`/api/projects/${id}`),
+    members: (id) => api.get(`/api/projects/${id}/members`),
+    setMember: (id, userId, role) => api.put(`/api/projects/${id}/members`, { user_id: userId, role }),
+    removeMember: (id, userId) => api.del(`/api/projects/${id}/members/${userId}`),
   },
   taskLists: {
     list: (projectId) => api.get(`/api/task-lists?project_id=${projectId}`),

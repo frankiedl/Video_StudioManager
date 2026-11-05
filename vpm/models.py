@@ -49,6 +49,15 @@ class FileLock(Base):
     heartbeat_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 
+class ProjectMember(Base):
+    __tablename__ = "project_members"
+    __table_args__ = (UniqueConstraint("project_id", "user_id", name="uq_member"),)
+    id = Column(String, primary_key=True, default=gen_id)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    role = Column(String, default="editor")  # viewer | editor | owner
+
+
 class Project(Base):
     __tablename__ = "projects"
     id = Column(String, primary_key=True, default=gen_id)

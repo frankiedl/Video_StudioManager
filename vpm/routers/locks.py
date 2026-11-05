@@ -7,7 +7,7 @@ import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import auth, models, schemas
+from .. import access, auth, models, schemas
 from ..database import get_db
 
 router = APIRouter(prefix="/api/locks", tags=["locks"])
@@ -38,13 +38,15 @@ def _who(me, user_id):
 
 
 @router.get("", response_model=list[schemas.LockOut])
-def list_locks(project_id: str, db: Session = Depends(get_db)):
+def list_locks(project_id: str, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    access.require(db, me, project_id, "viewer")
     return active_locks(db, project_id)
 
 
 @router.post("", response_model=schemas.LockOut)
 def acquire(payload: schemas.LockIn, db: Session = Depends(get_db),
             me: models.User | None = Depends(auth.current_user)):
+    access.require(db, me, payload.project_id, "editor")
     uid = _who(me, payload.user_id)
     cutoff = datetime.datetime.utcnow() - LOCK_TTL
     lock = db.query(models.FileLock).filter_by(project_id=payload.project_id, rel_path=payload.rel_path).first()
@@ -66,6 +68,7 @@ def acquire(payload: schemas.LockIn, db: Session = Depends(get_db),
 @router.delete("")
 def release(project_id: str, rel_path: str, user_id: str | None = None, db: Session = Depends(get_db),
              me: models.User | None = Depends(auth.current_user)):
+    access.require(db, me, project_id, "editor")
     uid = _who(me, user_id)
     lock = db.query(models.FileLock).filter_by(project_id=project_id, rel_path=rel_path).first()
     if not lock:

@@ -1331,7 +1331,46 @@ $("#btn-project-settings").addEventListener("click", () => {
   $("#ps-path").value = p.root_path;
   $("#ps-color").value = p.color;
   $("#ps-statuses").value = p.statuses.join(", ");
+  renderMembers();
   openModal("#modal-project-settings");
+});
+
+const ROLE_LABELS = { viewer: "Lector", editor: "Editor", owner: "Propietario" };
+async function renderMembers() {
+  const pid = state.currentProjectId;
+  const box = $("#ps-members");
+  let members = [];
+  try { members = await api.projects.members(pid); } catch (e) { box.textContent = e.message; return; }
+  box.innerHTML = "";
+  members.forEach(m => {
+    const u = userById(m.user_id);
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;align-items:center;gap:6px;margin:3px 0";
+    row.innerHTML = `<span style="flex:1">${escapeHtml(u ? u.name : m.user_id)}</span>`;
+    const sel = document.createElement("select");
+    sel.innerHTML = Object.entries(ROLE_LABELS).map(([k, v]) => `<option value="${k}" ${m.role === k ? "selected" : ""}>${v}</option>`).join("");
+    sel.addEventListener("change", async () => {
+      try { await api.projects.setMember(pid, m.user_id, sel.value); } catch (e) { toast(e.message, true); }
+      renderMembers();
+    });
+    const del = document.createElement("button");
+    del.className = "btn btn-ghost"; del.type = "button"; del.textContent = "✕";
+    del.addEventListener("click", async () => {
+      try { await api.projects.removeMember(pid, m.user_id); } catch (e) { toast(e.message, true); }
+      renderMembers();
+    });
+    row.appendChild(sel); row.appendChild(del); box.appendChild(row);
+  });
+  const inProject = new Set(members.map(m => m.user_id));
+  $("#ps-member-user").innerHTML = state.users.filter(u => !inProject.has(u.id))
+    .map(u => `<option value="${u.id}">${escapeHtml(u.name)}</option>`).join("");
+}
+$("#ps-member-add").addEventListener("click", async () => {
+  const uid = $("#ps-member-user").value;
+  if (!uid) return;
+  try { await api.projects.setMember(state.currentProjectId, uid, $("#ps-member-role").value); }
+  catch (e) { toast(e.message, true); }
+  renderMembers();
 });
 $("#ps-save").addEventListener("click", async () => {
   const p = projectById(state.currentProjectId);

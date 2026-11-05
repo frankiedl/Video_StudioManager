@@ -106,6 +106,13 @@
   <input type="color" id="ps-color">
   <label>Columnas del tablero (separadas por coma)</label>
   <input type="text" id="ps-statuses">
+  <label>Miembros y permisos</label>
+  <div id="ps-members"></div>
+  <div style="display:flex;gap:6px;margin:6px 0">
+    <select id="ps-member-user" style="flex:1"></select>
+    <select id="ps-member-role"><option value="viewer">Lector</option><option value="editor" selected>Editor</option><option value="owner">Propietario</option></select>
+    <button class="btn" id="ps-member-add" type="button">Añadir</button>
+  </div>
   <div class="modal-actions">
     <button class="btn btn-danger" id="ps-delete">Eliminar proyecto</button>
     <button class="btn btn-ghost" data-close>Cancelar</button>

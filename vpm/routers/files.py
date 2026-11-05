@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from .. import auth, models, schemas
+from .. import access, auth, models, schemas
 from .locks import active_locks, locked_by_other
 from ..database import get_db
 from ..thumbnails import get_or_create_thumbnail
@@ -24,7 +24,8 @@ def _resolve(project: models.Project, rel_path: str) -> Path:
     return target
 
 
-def _get_project(project_id: str, db: Session) -> models.Project:
+def _get_project(project_id: str, db: Session, me=None, need: str = "viewer") -> models.Project:
+    access.require(db, me, project_id, need)
     project = db.get(models.Project, project_id)
     if not project:
         raise HTTPException(404, "Proyecto no encontrado")
@@ -34,8 +35,8 @@ def _get_project(project_id: str, db: Session) -> models.Project:
 
 
 @router.get("/browse")
-def browse(project_id: str, rel_path: str = "", db: Session = Depends(get_db)):
-    project = _get_project(project_id, db)
+def browse(project_id: str, rel_path: str = "", db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    project = _get_project(project_id, db, me, "viewer")
     target = _resolve(project, rel_path)
     if not target.exists() or not target.is_dir():
         raise HTTPException(404, "Carpeta no encontrada")
@@ -82,9 +83,9 @@ MAX_TREE_DEPTH = 10
 
 
 @router.get("/tree")
-def tree(project_id: str, db: Session = Depends(get_db)):
+def tree(project_id: str, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
     """Full recursive folder tree (directories only), for an always-expanded sidebar explorer."""
-    project = _get_project(project_id, db)
+    project = _get_project(project_id, db, me, "viewer")
     root = Path(project.root_path).resolve()
     colors = {
         m.rel_path: m.color
@@ -128,8 +129,8 @@ class MkdirPayload(BaseModel):
 
 
 @router.post("/mkdir")
-def mkdir(payload: MkdirPayload, db: Session = Depends(get_db)):
-    project = _get_project(payload.project_id, db)
+def mkdir(payload: MkdirPayload, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    project = _get_project(payload.project_id, db, me, "editor")
     parent = _resolve(project, payload.rel_path)
     name = payload.name.strip()
     if not name or any(c in name for c in '\\/:*?"<>|'):
@@ -182,7 +183,7 @@ def _rewrite_path_prefix(db: Session, project_id: str, old_rel: str, new_rel: st
 @router.post("/rename")
 def rename(payload: schemas.RenamePayload, db: Session = Depends(get_db),
            me: models.User | None = Depends(auth.current_user)):
-    project = _get_project(payload.project_id, db)
+    project = _get_project(payload.project_id, db, me, "editor")
     held = locked_by_other(db, payload.project_id, payload.rel_path, me.id if me else None)
     if held and me is not None:
         owner = db.get(models.User, held.user_id)
@@ -209,8 +210,8 @@ def rename(payload: schemas.RenamePayload, db: Session = Depends(get_db),
 
 
 @router.get("/thumbnail")
-def thumbnail(project_id: str, rel_path: str, db: Session = Depends(get_db)):
-    project = _get_project(project_id, db)
+def thumbnail(project_id: str, rel_path: str, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    project = _get_project(project_id, db, me, "viewer")
     target = _resolve(project, rel_path)
     if not target.exists() or not target.is_file():
         raise HTTPException(404, "Archivo no encontrado")
@@ -219,8 +220,8 @@ def thumbnail(project_id: str, rel_path: str, db: Session = Depends(get_db)):
 
 
 @router.get("/download")
-def download(project_id: str, rel_path: str, db: Session = Depends(get_db)):
-    project = _get_project(project_id, db)
+def download(project_id: str, rel_path: str, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    project = _get_project(project_id, db, me, "viewer")
     target = _resolve(project, rel_path)
     if not target.exists() or not target.is_file():
         raise HTTPException(404, "Archivo no encontrado")
@@ -234,8 +235,8 @@ class OpenPayload(BaseModel):
 
 
 @router.post("/open")
-def open_file(payload: OpenPayload, db: Session = Depends(get_db)):
-    project = _get_project(payload.project_id, db)
+def open_file(payload: OpenPayload, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    project = _get_project(payload.project_id, db, me, "viewer")
     target = _resolve(project, payload.rel_path)
     if not target.exists():
         raise HTTPException(404, "No encontrado")
@@ -258,7 +259,8 @@ def open_file(payload: OpenPayload, db: Session = Depends(get_db)):
 
 
 @router.get("/meta")
-def get_meta(project_id: str, rel_path: str, db: Session = Depends(get_db)):
+def get_meta(project_id: str, rel_path: str, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    access.require(db, me, project_id, "viewer")
     meta = (
         db.query(models.AssetMeta)
         .filter(models.AssetMeta.project_id == project_id, models.AssetMeta.rel_path == rel_path)
@@ -273,7 +275,8 @@ def get_meta(project_id: str, rel_path: str, db: Session = Depends(get_db)):
 
 
 @router.patch("/meta")
-def patch_meta(project_id: str, rel_path: str, payload: schemas.AssetMetaPatch, db: Session = Depends(get_db)):
+def patch_meta(project_id: str, rel_path: str, payload: schemas.AssetMetaPatch, db: Session = Depends(get_db), me: models.User | None = Depends(auth.current_user)):
+    access.require(db, me, project_id, "editor")
     meta = (
         db.query(models.AssetMeta)
         .filter(models.AssetMeta.project_id == project_id, models.AssetMeta.rel_path == rel_path)

@@ -16,7 +16,8 @@ def test_lock_flow(monkeypatch, tmp_path):
     admin = TestClient(app.app)
     admin.post("/api/auth/setup", json={"name": "A", "email": "a@x.com", "password": "supersecret1"})
     pid = admin.post("/api/projects", json={"name": "P", "root_path": str(root), "create_structure": False}).json()["id"]
-    admin.post("/api/users", json={"name": "M", "email": "m@x.com", "password": "memberpass1"})
+    mid = admin.post("/api/users", json={"name": "M", "email": "m@x.com", "password": "memberpass1"}).json()["id"]
+    admin.put(f"/api/projects/{pid}/members", json={"user_id": mid, "role": "editor"})
     member = TestClient(app.app)
     member.post("/api/auth/login", json={"email": "m@x.com", "password": "memberpass1"})
 
